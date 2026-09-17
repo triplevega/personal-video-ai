@@ -16,5 +16,13 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .video { display: block; width: 100%; margin-top: 18px; border-radius: 12px; background: #000; }
 .download { display: inline-block; margin-top: 14px; padding: 11px 16px; border-radius: 10px; color: #10131c; background: #a6a3ff; font-weight: 700; text-decoration: none; }
 .download:hover { background: #c0beff; }
+.history { margin-top: 42px; border-top: 1px solid #394050; padding-top: 22px; }
+.history h2 { font-size: 22px; margin: 0 0 16px; }
+.history ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.history li { min-width: 0; }
+.history-item { display: grid; justify-self: stretch; text-align: left; width: 100%; gap: 5px; padding: 13px 15px; background: #1c2230; color: #e8eaf0; border: 1px solid #394050; font-weight: 400; }
+.history-item:hover, .history-item.selected { border-color: #a6a3ff; }
+.history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-item small { color: #a9afbf; }
 .note { font-size: 14px; margin-top: 30px; }
 
