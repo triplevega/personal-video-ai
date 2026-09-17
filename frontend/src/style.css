@@ -10,6 +10,11 @@ form { display: grid; gap: 14px; }
 label { font-weight: 650; }
 textarea { resize: vertical; min-height: 160px; width: 100%; padding: 18px; border-radius: 14px; border: 1px solid #394050; color: inherit; background: #191e2b; font: inherit; }
 textarea:focus { outline: 2px solid #a6a3ff; }
+.settings-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.settings-row > div { display: grid; gap: 8px; min-width: 0; }
+select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #394050; color: inherit; background: #191e2b; font: inherit; }
+select:focus { outline: 2px solid #a6a3ff; }
+@media (max-width: 520px) { .settings-row { grid-template-columns: 1fr; } }
 button { justify-self: start; padding: 13px 23px; border: 0; border-radius: 10px; background: #a6a3ff; color: #10131c; font: inherit; font-weight: 700; cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 .result { background: #22283a; padding: 15px; border-radius: 10px; overflow-wrap: anywhere; }
