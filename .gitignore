@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+config/settings.json
+node_modules/
+dist/
+*.tsbuildinfo
+data/*
+!data/.gitkeep
+*.mp4
+*.webm
