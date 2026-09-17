@@ -3,9 +3,11 @@
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from uuid import UUID
 
-from .comfyui import ConfigurationError, queue_generation
+from .comfyui import ConfigurationError, get_job, get_job_video, queue_generation
 
 app = FastAPI(title="Personal Video AI", version="0.1.0")
 app.add_middleware(
@@ -35,3 +37,27 @@ async def generate(request: GenerateRequest) -> dict[str, str]:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"ComfyUI indisponible ou réponse invalide : {exc}") from exc
+
+
+@app.get("/api/jobs/{job_id}")
+async def job_status(job_id: UUID) -> dict:
+    try:
+        return await get_job(str(job_id))
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"Impossible de lire la tâche ComfyUI : {exc}") from exc
+
+
+@app.get("/api/jobs/{job_id}/video")
+async def job_video(job_id: UUID) -> Response:
+    try:
+        content = await get_job_video(str(job_id))
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"Impossible de lire la vidéo ComfyUI : {exc}") from exc
+    if content is None:
+        raise HTTPException(status_code=404, detail="Vidéo indisponible pour cette tâche.")
+    return Response(content=content, media_type="video/mp4")
+
