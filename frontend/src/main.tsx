@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 
-type Job = { id: string; prompt: string; created_at: string };
+type VideoFormat = 'landscape' | 'square' | 'portrait';
+type Job = { id: string; prompt: string; created_at: string; video_format: VideoFormat | null; duration_seconds: number | null };
+const formatLabels: Record<VideoFormat, string> = { landscape: 'Paysage', square: 'Carré', portrait: 'Portrait' };
 
 function App() {
   const [health, setHealth] = useState('Vérification…');
   const [prompt, setPrompt] = useState('');
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>('landscape');
+  const [durationSeconds, setDurationSeconds] = useState<2 | 3>(2);
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState(() => new URLSearchParams(window.location.search).get('job') || localStorage.getItem('lastJobId') || '');
@@ -67,7 +71,7 @@ function App() {
     setBusy(true);
     setResult('');
     try {
-      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, video_format: videoFormat, duration_seconds: durationSeconds }) });
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('lastJobId', data.prompt_id);
@@ -96,7 +100,24 @@ function App() {
     window.history.replaceState(null, '', `?job=${id}`);
   }
 
-  return <main><div className="badge">MILESTONE 002</div><h1>Personal Video AI</h1><p className="intro">Votre studio vidéo IA personnel, en construction.</p><p className="status">● {health}</p><form onSubmit={generate}><label htmlFor="prompt">Décrivez une scène</label><textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} minLength={1} maxLength={4000} required placeholder="Une forêt brumeuse au lever du soleil…"/><button disabled={busy || !prompt.trim()}>{busy ? 'Envoi…' : 'Envoyer à ComfyUI'}</button></form>{result && <p className="result" role="status">{result}</p>}{jobStatus && <p className="result" role="status">{jobStatus}</p>}{videoUrl && <><video className="video" src={videoUrl} controls playsInline /><a className="download" href={videoUrl} download={`personal-video-ai-${jobId}.mp4`}>Télécharger la vidéo</a></>}<section className="history"><div className="history-heading"><h2>Mes créations</h2><button type="button" onClick={() => void loadJobs()}>Actualiser</button></div>{jobs.length === 0 ? <p className="note">Les vidéos envoyées depuis cette interface apparaîtront ici.</p> : <ul>{jobs.map(job => <li key={job.id}><button type="button" className={`history-item${job.id === jobId ? ' selected' : ''}`} onClick={() => selectJob(job.id)} aria-pressed={job.id === jobId}><span>{job.prompt}</span><small>{new Date(job.created_at).toLocaleString('fr-FR')}</small></button></li>)}</ul>}</section><p className="note">La génération utilise le workflow local Wan 2.2. Gardez ComfyUI ouvert pendant le rendu.</p></main>;
+  return <main>
+    <div className="badge">MILESTONE 002</div><h1>Personal Video AI</h1>
+    <p className="intro">Votre studio vidéo IA personnel, en construction.</p>
+    <p className="status">● {health}</p>
+    <form onSubmit={generate}>
+      <label htmlFor="prompt">Décrivez une scène</label>
+      <textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} minLength={1} maxLength={4000} required placeholder="Une forêt brumeuse au lever du soleil…"/>
+      <div className="settings-row">
+        <div><label htmlFor="video-format">Format</label><select id="video-format" value={videoFormat} onChange={e => setVideoFormat(e.target.value as VideoFormat)}><option value="landscape">Paysage · 640 × 352</option><option value="square">Carré · 512 × 512</option><option value="portrait">Portrait · 352 × 640</option></select></div>
+        <div><label htmlFor="duration">Durée</label><select id="duration" value={durationSeconds} onChange={e => setDurationSeconds(Number(e.target.value) as 2 | 3)}><option value={2}>Environ 2 secondes</option><option value={3}>Environ 3 secondes</option></select></div>
+      </div>
+      <button disabled={busy || !prompt.trim()}>{busy ? 'Envoi…' : 'Envoyer à ComfyUI'}</button>
+    </form>
+    {result && <p className="result" role="status">{result}</p>}{jobStatus && <p className="result" role="status">{jobStatus}</p>}
+    {videoUrl && <><video className="video" src={videoUrl} controls playsInline /><a className="download" href={videoUrl} download={`personal-video-ai-${jobId}.mp4`}>Télécharger la vidéo</a></>}
+    <section className="history"><div className="history-heading"><h2>Mes créations</h2><button type="button" onClick={() => void loadJobs()}>Actualiser</button></div>{jobs.length === 0 ? <p className="note">Les vidéos envoyées depuis cette interface apparaîtront ici.</p> : <ul>{jobs.map(job => <li key={job.id}><button type="button" className={`history-item${job.id === jobId ? ' selected' : ''}`} onClick={() => selectJob(job.id)} aria-pressed={job.id === jobId}><span>{job.prompt}</span><small>{new Date(job.created_at).toLocaleString('fr-FR')}{job.video_format && job.duration_seconds ? ` · ${formatLabels[job.video_format]} · ≈ ${job.duration_seconds} s` : ''}</small></button></li>)}</ul>}</section>
+    <p className="note">La génération utilise le workflow local Wan 2.2. Gardez ComfyUI ouvert pendant le rendu.</p>
+  </main>;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
