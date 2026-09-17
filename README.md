@@ -45,6 +45,8 @@ Chaque génération envoyée depuis l'interface est enregistrée dans `data/jobs
 
 L'interface propose les formats paysage (640 × 352), carré (512 × 512) et portrait (352 × 640), ainsi que des durées d'environ 2 ou 3 secondes. Ces choix règlent le nœud vidéo du workflow Wan 2.2 avant l'envoi à ComfyUI. Le nombre d'images est respectivement 49 ou 73 à 24 images par seconde ; la durée exacte du fichier peut varier légèrement.
 
+Une image de départ PNG, JPEG ou WebP (10 Mo maximum) peut être choisie avant la génération. Elle est envoyée à l'instance locale ComfyUI et branchée sur l'entrée `start_image` du workflow Wan 2.2. Sans image, le mode texte vers vidéo reste disponible.
+
 ## Structure
 
 - `backend/app/main.py` : routes API et validation
