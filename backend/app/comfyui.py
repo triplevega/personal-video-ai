@@ -60,3 +60,49 @@ async def queue_generation(prompt: str, seed: int | None = None) -> dict[str, An
     if not isinstance(result, dict) or not result.get("prompt_id"):
         raise ValueError("ComfyUI n'a pas renvoyé de prompt_id.")
     return {"prompt_id": result["prompt_id"], "status": "queued"}
+
+
+async def get_job(job_id: str) -> dict[str, Any]:
+    """Read a queued job from ComfyUI history and locate its MP4 output."""
+    settings = load_settings()
+    url = str(settings.get("comfyui_url", "http://127.0.0.1:8188")).rstrip("/")
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.get(f"{url}/history/{job_id}")
+        response.raise_for_status()
+        history = response.json()
+    entry = history.get(job_id) if isinstance(history, dict) else None
+    if not isinstance(entry, dict):
+        return {"status": "queued"}
+    state = entry.get("status", {}).get("status_str")
+    if state != "success":
+        return {"status": "failed" if state == "error" else "running"}
+    for output in entry.get("outputs", {}).values():
+        for file in output.get("images", []) + output.get("videos", []):
+            if str(file.get("filename", "")).lower().endswith(".mp4"):
+                return {"status": "completed", "video_url": f"/api/jobs/{job_id}/video"}
+    return {"status": "completed"}
+
+
+async def get_job_video(job_id: str) -> bytes | None:
+    """Fetch only an MP4 that belongs to the requested ComfyUI job."""
+    settings = load_settings()
+    url = str(settings.get("comfyui_url", "http://127.0.0.1:8188")).rstrip("/")
+    async with httpx.AsyncClient(timeout=60) as client:
+        history_response = await client.get(f"{url}/history/{job_id}")
+        history_response.raise_for_status()
+        history = history_response.json()
+        entry = history.get(job_id) if isinstance(history, dict) else None
+        if not isinstance(entry, dict) or entry.get("status", {}).get("status_str") != "success":
+            return None
+        for output in entry.get("outputs", {}).values():
+            for file in output.get("images", []) + output.get("videos", []):
+                if str(file.get("filename", "")).lower().endswith(".mp4"):
+                    video_response = await client.get(f"{url}/view", params={
+                        "filename": file["filename"],
+                        "subfolder": file.get("subfolder", ""),
+                        "type": file.get("type", "output"),
+                    })
+                    video_response.raise_for_status()
+                    return video_response.content
+    return None
+
