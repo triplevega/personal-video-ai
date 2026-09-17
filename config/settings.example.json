@@ -2,6 +2,7 @@
   "comfyui_url": "http://127.0.0.1:8188",
   "workflow_path": "workflows/video_api.json",
   "prompt_node_id": "6",
-  "seed_node_id": "",
+  "seed_node_id": "3",
   "seed_input": "seed"
 }
+
