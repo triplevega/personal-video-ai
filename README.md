@@ -5,7 +5,7 @@ Base locale pour un studio de génération vidéo personnel : API FastAPI, inter
 ## Prérequis
 
 - Python 3.11 ou plus récent
-- Node.js 20 ou plus récent et pnpm (ou npm)
+- Node.js 20 ou plus récent avec npm
 - ComfyUI pour soumettre de vraies générations
 
 ## Démarrer l'API
@@ -13,10 +13,9 @@ Base locale pour un studio de génération vidéo personnel : API FastAPI, inter
 Depuis `backend` :
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 Ouvrir http://127.0.0.1:8000/api/health ou http://127.0.0.1:8000/docs.
@@ -26,17 +25,17 @@ Ouvrir http://127.0.0.1:8000/api/health ou http://127.0.0.1:8000/docs.
 Depuis `frontend` :
 
 ```powershell
-pnpm install
-pnpm dev
+npm.cmd install
+npm.cmd run dev
 ```
 
-Avec npm : `npm install`, puis `npm run dev`. Ouvrir http://127.0.0.1:5173. Vite transmet `/api` à l'API locale.
+Ouvrir http://127.0.0.1:5173. Vite transmet `/api` à l'API locale. L'utilisation de `npm.cmd` évite le blocage éventuel de `npm.ps1` par PowerShell.
 
 ## Brancher ComfyUI
 
 1. Démarrer l'instance locale ComfyUI. Le modèle Wan 2.2 TI2V 5B, son VAE et son encodeur texte doivent être présents dans ComfyUI.
 2. Copier `config/settings.example.json` vers `config/settings.json`. L'URL par défaut est `http://127.0.0.1:8188` et le nœud de prompt du workflow fourni est `6`.
-3. Envoyer `POST /api/generate` avec `{"prompt":"Une scène de forêt au lever du soleil"}`. La réponse contient l'identifiant de tâche ComfyUI ; le suivi et le téléchargement vidéo viendront dans un jalon suivant.
+3. Envoyer `POST /api/generate` avec `{"prompt":"Une scène de forêt au lever du soleil"}`. La réponse contient l'identifiant de tâche ComfyUI. `GET /api/jobs/{id}` expose son état et l'URL vidéo après la génération ; l'interface affiche automatiquement le résultat.
 
 Sans configuration, `/api/generate` répond 503 avec une explication. Avec la configuration mais sans instance ComfyUI active, il répond 502. Le workflow fourni dépend des modèles Wan 2.2 installés localement.
 
