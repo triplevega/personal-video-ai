@@ -12,6 +12,7 @@ function App() {
   const [videoFormat, setVideoFormat] = useState<VideoFormat>('landscape');
   const [durationSeconds, setDurationSeconds] = useState<2 | 3>(2);
   const [startImage, setStartImage] = useState<File | null>(null);
+  const [imageFormat, setImageFormat] = useState<VideoFormat | null>(null);
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState(() => new URLSearchParams(window.location.search).get('job') || localStorage.getItem('lastJobId') || '');
@@ -109,6 +110,22 @@ function App() {
     window.history.replaceState(null, '', `?job=${id}`);
   }
 
+  async function chooseImage(file: File | null) {
+    setStartImage(file);
+    setImageFormat(null);
+    if (!file) return;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const ratio = bitmap.width / bitmap.height;
+      bitmap.close();
+      const detected: VideoFormat = ratio < 0.85 ? 'portrait' : ratio > 1.15 ? 'landscape' : 'square';
+      setImageFormat(detected);
+      setVideoFormat(detected);
+    } catch {
+      setResult('Impossible de lire les dimensions de l’image choisie.');
+    }
+  }
+
   return <main>
     <div className="badge">MILESTONE 002</div><h1>Personal Video AI</h1>
     <p className="intro">Votre studio vidéo IA personnel, en construction.</p>
@@ -116,7 +133,7 @@ function App() {
     <form onSubmit={generate}>
       <label htmlFor="prompt">Décrivez une scène</label>
       <textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} minLength={1} maxLength={4000} required placeholder="Une forêt brumeuse au lever du soleil…"/>
-      <div className="image-field"><label htmlFor="start-image">Image de départ <span>(facultatif)</span></label><input id="start-image" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setStartImage(e.target.files?.[0] ?? null)}/>{startImage && <button type="button" className="clear-image" onClick={() => { setStartImage(null); const input = document.getElementById('start-image') as HTMLInputElement; input.value = ''; }}>Retirer l’image</button>}</div>
+      <div className="image-field"><label htmlFor="start-image">Image de départ <span>(facultatif)</span></label><input id="start-image" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => void chooseImage(e.target.files?.[0] ?? null)}/>{startImage && <button type="button" className="clear-image" onClick={() => { void chooseImage(null); const input = document.getElementById('start-image') as HTMLInputElement; input.value = ''; }}>Retirer l’image</button>}{imageFormat && videoFormat !== imageFormat && <p className="format-warning">L’image est au format {formatLabels[imageFormat].toLowerCase()}. Choisir un autre format peut couper une grande partie de l’image.</p>}</div>
       <div className="settings-row">
         <div><label htmlFor="video-format">Format</label><select id="video-format" value={videoFormat} onChange={e => setVideoFormat(e.target.value as VideoFormat)}><option value="landscape">Paysage · 640 × 352</option><option value="square">Carré · 512 × 512</option><option value="portrait">Portrait · 352 × 640</option></select></div>
         <div><label htmlFor="duration">Durée</label><select id="duration" value={durationSeconds} onChange={e => setDurationSeconds(Number(e.target.value) as 2 | 3)}><option value={2}>Environ 2 secondes</option><option value={3}>Environ 3 secondes</option></select></div>
