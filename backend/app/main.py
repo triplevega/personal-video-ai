@@ -8,10 +8,11 @@ from pydantic import BaseModel, Field, model_validator
 from uuid import UUID
 from typing import Literal
 
-from .comfyui import ConfigurationError, get_job, get_job_video, queue_generation, upload_start_image
+from .comfyui import ConfigurationError, get_job, get_job_video, upload_start_image
+from .engines import GenerationOptions, get_engine, list_engines
 from .store import list_jobs, record_job
 
-app = FastAPI(title="Personal Video AI", version="0.1.0")
+app = FastAPI(title="Personal Video AI", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -28,6 +29,7 @@ class GenerateRequest(BaseModel):
     duration_seconds: Literal[2, 3] = 2
     start_image: str | None = Field(default=None, pattern=r"^personal-video-ai-[0-9a-f]{32}\.(png|jpg|webp)$")
     quality: Literal["fast", "detailed"] = "detailed"
+    engine: Literal["auto", "wan", "ltx", "hunyuan"] = "auto"
 
     @model_validator(mode="after")
     def check_quality_duration(self):
@@ -38,19 +40,32 @@ class GenerateRequest(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.2.0"}
+
+
+@app.get("/api/engines")
+def engines() -> list[dict]:
+    return list_engines()
 
 
 @app.post("/api/generate", status_code=202)
 async def generate(request: GenerateRequest) -> dict[str, str]:
     try:
-        result = await queue_generation(request.prompt, request.seed, request.video_format, request.duration_seconds, request.start_image, request.quality)
+        engine = get_engine(request.engine)
+        result = await engine.generate(GenerationOptions(
+            prompt=request.prompt,
+            seed=request.seed,
+            video_format=request.video_format,
+            duration_seconds=request.duration_seconds,
+            start_image=request.start_image,
+            quality=request.quality,
+        ))
         record_job(result["prompt_id"], request.prompt, request.video_format, request.duration_seconds, request.quality)
-        return result
+        return {**result, "engine": engine.id}
     except ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (httpx.HTTPError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail=f"ComfyUI indisponible ou réponse invalide : {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Moteur de génération indisponible ou réponse invalide : {exc}") from exc
 
 
 @app.post("/api/images", status_code=201)
@@ -101,4 +116,3 @@ async def job_video(job_id: UUID) -> Response:
     if content is None:
         raise HTTPException(status_code=404, detail="Vidéo indisponible pour cette tâche.")
     return Response(content=content, media_type="video/mp4")
-
