@@ -14,5 +14,7 @@ button { justify-self: start; padding: 13px 23px; border: 0; border-radius: 10px
 button:disabled { opacity: .5; cursor: not-allowed; }
 .result { background: #22283a; padding: 15px; border-radius: 10px; overflow-wrap: anywhere; }
 .video { display: block; width: 100%; margin-top: 18px; border-radius: 12px; background: #000; }
+.download { display: inline-block; margin-top: 14px; padding: 11px 16px; border-radius: 10px; color: #10131c; background: #a6a3ff; font-weight: 700; text-decoration: none; }
+.download:hover { background: #c0beff; }
 .note { font-size: 14px; margin-top: 30px; }
 
