@@ -10,7 +10,10 @@ import httpx
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FORMAT_SIZES = {"landscape": (640, 352), "square": (512, 512), "portrait": (352, 640)}
+FORMAT_SIZES = {
+    "fast": {"landscape": (640, 352), "square": (512, 512), "portrait": (352, 640)},
+    "detailed": {"landscape": (832, 480), "square": (640, 640), "portrait": (480, 832)},
+}
 DURATION_FRAMES = {2: 49, 3: 73}
 
 
@@ -31,7 +34,7 @@ def load_settings() -> dict[str, Any]:
         raise ConfigurationError(f"Configuration illisible : {exc}") from exc
 
 
-def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None) -> dict[str, Any]:
+def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None, quality: str = "detailed") -> dict[str, Any]:
     relative = Path(str(settings.get("workflow_path", "")))
     if not relative.parts or relative.is_absolute() or ".." in relative.parts:
         raise ConfigurationError("workflow_path doit désigner un fichier relatif au projet.")
@@ -44,7 +47,7 @@ def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, vide
             raise ValueError("le workflow API doit être un objet JSON")
         workflow = copy.deepcopy(workflow)
         workflow[str(settings["prompt_node_id"])]["inputs"]["text"] = prompt
-        width, height = FORMAT_SIZES[video_format]
+        width, height = FORMAT_SIZES[quality][video_format]
         video_inputs = workflow[str(settings.get("video_node_id", "55"))]["inputs"]
         video_inputs.update(width=width, height=height, length=DURATION_FRAMES[duration_seconds])
         if start_image:
@@ -58,9 +61,9 @@ def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, vide
         raise ConfigurationError(f"Workflow invalide ou nœud configuré absent : {exc}") from exc
 
 
-async def queue_generation(prompt: str, seed: int | None = None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None) -> dict[str, Any]:
+async def queue_generation(prompt: str, seed: int | None = None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None, quality: str = "detailed") -> dict[str, Any]:
     settings = load_settings()
-    workflow = build_workflow(settings, prompt, seed, video_format, duration_seconds, start_image)
+    workflow = build_workflow(settings, prompt, seed, video_format, duration_seconds, start_image, quality)
     url = str(settings.get("comfyui_url", "http://127.0.0.1:8188")).rstrip("/")
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(f"{url}/prompt", json={"prompt": workflow})
