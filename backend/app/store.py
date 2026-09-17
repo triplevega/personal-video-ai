@@ -18,21 +18,26 @@ def _connect() -> sqlite3.Connection:
             created_at TEXT NOT NULL
         )
     """)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
+    if "video_format" not in columns:
+        connection.execute("ALTER TABLE jobs ADD COLUMN video_format TEXT")
+    if "duration_seconds" not in columns:
+        connection.execute("ALTER TABLE jobs ADD COLUMN duration_seconds INTEGER")
     return connection
 
 
-def record_job(job_id: str, prompt: str) -> None:
+def record_job(job_id: str, prompt: str, video_format: str, duration_seconds: int) -> None:
     with _connect() as connection:
         connection.execute(
-            "INSERT OR IGNORE INTO jobs (id, prompt, created_at) VALUES (?, ?, ?)",
-            (job_id, prompt, datetime.now(timezone.utc).isoformat()),
+            "INSERT OR IGNORE INTO jobs (id, prompt, created_at, video_format, duration_seconds) VALUES (?, ?, ?, ?, ?)",
+            (job_id, prompt, datetime.now(timezone.utc).isoformat(), video_format, duration_seconds),
         )
 
 
-def list_jobs(limit: int = 50) -> list[dict[str, str]]:
+def list_jobs(limit: int = 50) -> list[dict]:
     with _connect() as connection:
         rows = connection.execute(
-            "SELECT id, prompt, created_at FROM jobs ORDER BY created_at DESC LIMIT ?",
+            "SELECT id, prompt, created_at, video_format, duration_seconds FROM jobs ORDER BY created_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
     return [dict(row) for row in rows]
