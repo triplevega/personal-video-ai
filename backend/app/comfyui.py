@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
@@ -30,7 +31,7 @@ def load_settings() -> dict[str, Any]:
         raise ConfigurationError(f"Configuration illisible : {exc}") from exc
 
 
-def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, video_format: str = "landscape", duration_seconds: int = 2) -> dict[str, Any]:
+def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None) -> dict[str, Any]:
     relative = Path(str(settings.get("workflow_path", "")))
     if not relative.parts or relative.is_absolute() or ".." in relative.parts:
         raise ConfigurationError("workflow_path doit désigner un fichier relatif au projet.")
@@ -46,6 +47,9 @@ def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, vide
         width, height = FORMAT_SIZES[video_format]
         video_inputs = workflow[str(settings.get("video_node_id", "55"))]["inputs"]
         video_inputs.update(width=width, height=height, length=DURATION_FRAMES[duration_seconds])
+        if start_image:
+            workflow["59"] = {"class_type": "LoadImage", "inputs": {"image": start_image}}
+            video_inputs["start_image"] = ["59", 0]
         if seed is not None and settings.get("seed_node_id"):
             seed_input = str(settings.get("seed_input", "seed"))
             workflow[str(settings["seed_node_id"])]["inputs"][seed_input] = seed
@@ -54,9 +58,9 @@ def build_workflow(settings: dict[str, Any], prompt: str, seed: int | None, vide
         raise ConfigurationError(f"Workflow invalide ou nœud configuré absent : {exc}") from exc
 
 
-async def queue_generation(prompt: str, seed: int | None = None, video_format: str = "landscape", duration_seconds: int = 2) -> dict[str, Any]:
+async def queue_generation(prompt: str, seed: int | None = None, video_format: str = "landscape", duration_seconds: int = 2, start_image: str | None = None) -> dict[str, Any]:
     settings = load_settings()
-    workflow = build_workflow(settings, prompt, seed, video_format, duration_seconds)
+    workflow = build_workflow(settings, prompt, seed, video_format, duration_seconds, start_image)
     url = str(settings.get("comfyui_url", "http://127.0.0.1:8188")).rstrip("/")
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(f"{url}/prompt", json={"prompt": workflow})
@@ -65,6 +69,21 @@ async def queue_generation(prompt: str, seed: int | None = None, video_format: s
     if not isinstance(result, dict) or not result.get("prompt_id"):
         raise ValueError("ComfyUI n'a pas renvoyé de prompt_id.")
     return {"prompt_id": result["prompt_id"], "status": "queued"}
+
+
+async def upload_start_image(content: bytes, extension: str) -> str:
+    settings = load_settings()
+    url = str(settings.get("comfyui_url", "http://127.0.0.1:8188")).rstrip("/")
+    name = f"personal-video-ai-{uuid4().hex}.{extension}"
+    media_type = "image/jpeg" if extension == "jpg" else f"image/{extension}"
+    async with httpx.AsyncClient(timeout=60) as client:
+        response = await client.post(f"{url}/upload/image", files={"image": (name, content, media_type)}, data={"type": "input", "overwrite": "false"})
+        response.raise_for_status()
+        result = response.json()
+    returned_name = result.get("name") if isinstance(result, dict) else None
+    if returned_name != name:
+        raise ValueError("ComfyUI n'a pas confirmé l'image envoyée.")
+    return name
 
 
 async def get_job(job_id: str) -> dict[str, Any]:
