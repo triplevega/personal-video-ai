@@ -43,6 +43,8 @@ Sans configuration, `/api/generate` répond 503 avec une explication. Avec la co
 
 Chaque génération envoyée depuis l'interface est enregistrée dans `data/jobs.sqlite3`. La section **Mes créations** permet de rouvrir les rendus après avoir fermé le navigateur. `GET /api/jobs` fournit les entrées récentes. Les vidéos restent dans le dossier de sortie de ComfyUI : l'instance doit être ouverte pour les lire depuis cette application.
 
+L'interface propose les formats paysage (640 × 352), carré (512 × 512) et portrait (352 × 640), ainsi que des durées d'environ 2 ou 3 secondes. Ces choix règlent le nœud vidéo du workflow Wan 2.2 avant l'envoi à ComfyUI. Le nombre d'images est respectivement 49 ou 73 à 24 images par seconde ; la durée exacte du fichier peut varier légèrement.
+
 ## Structure
 
 - `backend/app/main.py` : routes API et validation
