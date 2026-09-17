@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from uuid import UUID
+from typing import Literal
 
 from .comfyui import ConfigurationError, get_job, get_job_video, queue_generation
 from .store import list_jobs, record_job
@@ -23,6 +24,8 @@ app.add_middleware(
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=4000)
     seed: int | None = Field(default=None, ge=0)
+    video_format: Literal["landscape", "square", "portrait"] = "landscape"
+    duration_seconds: Literal[2, 3] = 2
 
 
 @app.get("/api/health")
@@ -33,8 +36,8 @@ def health() -> dict[str, str]:
 @app.post("/api/generate", status_code=202)
 async def generate(request: GenerateRequest) -> dict[str, str]:
     try:
-        result = await queue_generation(request.prompt, request.seed)
-        record_job(result["prompt_id"], request.prompt)
+        result = await queue_generation(request.prompt, request.seed, request.video_format, request.duration_seconds)
+        record_job(result["prompt_id"], request.prompt, request.video_format, request.duration_seconds)
         return result
     except ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -43,7 +46,7 @@ async def generate(request: GenerateRequest) -> dict[str, str]:
 
 
 @app.get("/api/jobs")
-def history() -> list[dict[str, str]]:
+def history() -> list[dict]:
     return list_jobs()
 
 
