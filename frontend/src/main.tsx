@@ -16,6 +16,7 @@ function App() {
   const [result, setResult] = useState('');
   const [busy, setBusy] = useState(false);
   const [jobId, setJobId] = useState(() => new URLSearchParams(window.location.search).get('job') || localStorage.getItem('lastJobId') || '');
+  const [jobRefresh, setJobRefresh] = useState(0);
   const [jobStatus, setJobStatus] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -66,7 +67,7 @@ function App() {
     }
     void check();
     return () => { active = false; clearTimeout(timer); };
-  }, [jobId]);
+  }, [jobId, jobRefresh]);
 
   async function generate(event: React.FormEvent) {
     event.preventDefault();
@@ -104,8 +105,9 @@ function App() {
   function selectJob(id: string) {
     setResult('');
     setVideoUrl('');
-    setJobStatus('');
+    setJobStatus('Chargement de la vidéo…');
     setJobId(id);
+    setJobRefresh(value => value + 1);
     localStorage.setItem('lastJobId', id);
     window.history.replaceState(null, '', `?job=${id}`);
   }
