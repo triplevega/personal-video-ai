@@ -4,7 +4,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from uuid import UUID
 from typing import Literal
 
@@ -27,6 +27,13 @@ class GenerateRequest(BaseModel):
     video_format: Literal["landscape", "square", "portrait"] = "landscape"
     duration_seconds: Literal[2, 3] = 2
     start_image: str | None = Field(default=None, pattern=r"^personal-video-ai-[0-9a-f]{32}\.(png|jpg|webp)$")
+    quality: Literal["fast", "detailed"] = "detailed"
+
+    @model_validator(mode="after")
+    def check_quality_duration(self):
+        if self.quality == "detailed" and self.duration_seconds != 2:
+            raise ValueError("La qualité détaillée est disponible pour environ 2 secondes. Choisissez le mode rapide pour 3 secondes.")
+        return self
 
 
 @app.get("/api/health")
@@ -37,8 +44,8 @@ def health() -> dict[str, str]:
 @app.post("/api/generate", status_code=202)
 async def generate(request: GenerateRequest) -> dict[str, str]:
     try:
-        result = await queue_generation(request.prompt, request.seed, request.video_format, request.duration_seconds, request.start_image)
-        record_job(result["prompt_id"], request.prompt, request.video_format, request.duration_seconds)
+        result = await queue_generation(request.prompt, request.seed, request.video_format, request.duration_seconds, request.start_image, request.quality)
+        record_job(result["prompt_id"], request.prompt, request.video_format, request.duration_seconds, request.quality)
         return result
     except ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
