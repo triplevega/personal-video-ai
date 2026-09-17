@@ -1,4 +1,4 @@
-# Personal Video AI — Milestone 001
+# Personal Video AI
 
 Base locale pour un studio de génération vidéo personnel : API FastAPI, interface React et adaptateur ComfyUI. Le workflow API `workflows/video_api.json` correspond au modèle local Wan 2.2 TI2V 5B, réglé sur 640 × 352 et 49 images. Les poids du modèle doivent être installés séparément dans ComfyUI.
 
@@ -38,6 +38,10 @@ Ouvrir http://127.0.0.1:5173. Vite transmet `/api` à l'API locale. L'utilisatio
 3. Envoyer `POST /api/generate` avec `{"prompt":"Une scène de forêt au lever du soleil"}`. La réponse contient l'identifiant de tâche ComfyUI. `GET /api/jobs/{id}` expose son état et l'URL vidéo après la génération ; l'interface affiche automatiquement le résultat.
 
 Sans configuration, `/api/generate` répond 503 avec une explication. Avec la configuration mais sans instance ComfyUI active, il répond 502. Le workflow fourni dépend des modèles Wan 2.2 installés localement.
+
+## Historique
+
+Chaque génération envoyée depuis l'interface est enregistrée dans `data/jobs.sqlite3`. La section **Mes créations** permet de rouvrir les rendus après avoir fermé le navigateur. `GET /api/jobs` fournit les entrées récentes. Les vidéos restent dans le dossier de sortie de ComfyUI : l'instance doit être ouverte pour les lire depuis cette application.
 
 ## Structure
 
