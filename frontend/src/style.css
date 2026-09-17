@@ -1,0 +1,16 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #e8eaf0; background: #10131c; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+main { width: min(640px, calc(100% - 40px)); padding: 48px 0; }
+.badge { color: #a6a3ff; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
+h1 { font-size: clamp(36px, 7vw, 58px); margin: 14px 0 8px; letter-spacing: -.04em; }
+.intro, .note { color: #a9afbf; line-height: 1.6; }
+.status { display: inline-block; color: #7ee0b2; background: #1b2b2a; border-radius: 100px; padding: 9px 14px; margin: 22px 0 34px; }
+form { display: grid; gap: 14px; }
+label { font-weight: 650; }
+textarea { resize: vertical; min-height: 160px; width: 100%; padding: 18px; border-radius: 14px; border: 1px solid #394050; color: inherit; background: #191e2b; font: inherit; }
+textarea:focus { outline: 2px solid #a6a3ff; }
+button { justify-self: start; padding: 13px 23px; border: 0; border-radius: 10px; background: #a6a3ff; color: #10131c; font: inherit; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.result { background: #22283a; padding: 15px; border-radius: 10px; overflow-wrap: anywhere; }
+.note { font-size: 14px; margin-top: 30px; }
