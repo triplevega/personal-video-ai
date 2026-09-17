@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 
 type VideoFormat = 'landscape' | 'square' | 'portrait';
-type Job = { id: string; prompt: string; created_at: string; video_format: VideoFormat | null; duration_seconds: number | null };
+type Quality = 'fast' | 'detailed';
+type Job = { id: string; prompt: string; created_at: string; video_format: VideoFormat | null; duration_seconds: number | null; quality: Quality | null };
 const formatLabels: Record<VideoFormat, string> = { landscape: 'Paysage', square: 'Carré', portrait: 'Portrait' };
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [prompt, setPrompt] = useState('');
   const [videoFormat, setVideoFormat] = useState<VideoFormat>('landscape');
   const [durationSeconds, setDurationSeconds] = useState<2 | 3>(2);
+  const [quality, setQuality] = useState<Quality>('detailed');
   const [startImage, setStartImage] = useState<File | null>(null);
   const [imageFormat, setImageFormat] = useState<VideoFormat | null>(null);
   const [result, setResult] = useState('');
@@ -82,7 +84,7 @@ function App() {
         if (!upload.ok) throw new Error(uploaded.detail ?? 'Impossible d’envoyer l’image.');
         imageName = uploaded.name;
       }
-      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, video_format: videoFormat, duration_seconds: durationSeconds, start_image: imageName }) });
+      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, video_format: videoFormat, duration_seconds: durationSeconds, start_image: imageName, quality }) });
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('lastJobId', data.prompt_id);
@@ -137,14 +139,15 @@ function App() {
       <textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} minLength={1} maxLength={4000} required placeholder="Une forêt brumeuse au lever du soleil…"/>
       <div className="image-field"><label htmlFor="start-image">Image de départ <span>(facultatif)</span></label><input id="start-image" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => void chooseImage(e.target.files?.[0] ?? null)}/>{startImage && <button type="button" className="clear-image" onClick={() => { void chooseImage(null); const input = document.getElementById('start-image') as HTMLInputElement; input.value = ''; }}>Retirer l’image</button>}{imageFormat && videoFormat !== imageFormat && <p className="format-warning">L’image est au format {formatLabels[imageFormat].toLowerCase()}. Choisir un autre format peut couper une grande partie de l’image.</p>}</div>
       <div className="settings-row">
-        <div><label htmlFor="video-format">Format</label><select id="video-format" value={videoFormat} onChange={e => setVideoFormat(e.target.value as VideoFormat)}><option value="landscape">Paysage · 640 × 352</option><option value="square">Carré · 512 × 512</option><option value="portrait">Portrait · 352 × 640</option></select></div>
-        <div><label htmlFor="duration">Durée</label><select id="duration" value={durationSeconds} onChange={e => setDurationSeconds(Number(e.target.value) as 2 | 3)}><option value={2}>Environ 2 secondes</option><option value={3}>Environ 3 secondes</option></select></div>
+        <div><label htmlFor="video-format">Format</label><select id="video-format" value={videoFormat} onChange={e => setVideoFormat(e.target.value as VideoFormat)}><option value="landscape">Paysage</option><option value="square">Carré</option><option value="portrait">Portrait</option></select></div>
+        <div><label htmlFor="duration">Durée</label><select id="duration" value={durationSeconds} onChange={e => setDurationSeconds(Number(e.target.value) as 2 | 3)}><option value={2}>Environ 2 secondes</option><option value={3} disabled={quality === 'detailed'}>Environ 3 secondes {quality === 'detailed' ? '(mode rapide)' : ''}</option></select></div>
       </div>
+      <div className="quality-field"><label htmlFor="quality">Qualité</label><select id="quality" value={quality} onChange={e => { const next = e.target.value as Quality; setQuality(next); if (next === 'detailed') setDurationSeconds(2); }}><option value="detailed">Détaillée · plus nette</option><option value="fast">Rapide · basse résolution</option></select><small>{quality === 'detailed' ? 'Résolution plus élevée, testée en portrait sur ton PC. Durée limitée à environ 2 secondes.' : 'Résolution réduite pour des essais plus rapides, jusqu’à environ 3 secondes.'}</small></div>
       <button disabled={busy || !prompt.trim()}>{busy ? 'Envoi…' : 'Envoyer à ComfyUI'}</button>
     </form>
     {result && <p className="result" role="status">{result}</p>}{jobStatus && <p className="result" role="status">{jobStatus}</p>}
     {videoUrl && <><video className="video" src={videoUrl} controls playsInline /><a className="download" href={videoUrl} download={`personal-video-ai-${jobId}.mp4`}>Télécharger la vidéo</a></>}
-    <section className="history"><div className="history-heading"><h2>Mes créations</h2><button type="button" onClick={() => void loadJobs()}>Actualiser</button></div>{jobs.length === 0 ? <p className="note">Les vidéos envoyées depuis cette interface apparaîtront ici.</p> : <ul>{jobs.map(job => <li key={job.id}><button type="button" className={`history-item${job.id === jobId ? ' selected' : ''}`} onClick={() => selectJob(job.id)} aria-pressed={job.id === jobId}><span>{job.prompt}</span><small>{new Date(job.created_at).toLocaleString('fr-FR')}{job.video_format && job.duration_seconds ? ` · ${formatLabels[job.video_format]} · ≈ ${job.duration_seconds} s` : ''}</small></button></li>)}</ul>}</section>
+    <section className="history"><div className="history-heading"><h2>Mes créations</h2><button type="button" onClick={() => void loadJobs()}>Actualiser</button></div>{jobs.length === 0 ? <p className="note">Les vidéos envoyées depuis cette interface apparaîtront ici.</p> : <ul>{jobs.map(job => <li key={job.id}><button type="button" className={`history-item${job.id === jobId ? ' selected' : ''}`} onClick={() => selectJob(job.id)} aria-pressed={job.id === jobId}><span>{job.prompt}</span><small>{new Date(job.created_at).toLocaleString('fr-FR')}{job.video_format && job.duration_seconds ? ` · ${formatLabels[job.video_format]} · ≈ ${job.duration_seconds} s` : ''}{job.quality ? ` · ${job.quality === 'detailed' ? 'Détaillée' : 'Rapide'}` : ''}</small></button></li>)}</ul>}</section>
     <p className="note">La génération utilise le workflow local Wan 2.2. Gardez ComfyUI ouvert pendant le rendu.</p>
   </main>;
 }
