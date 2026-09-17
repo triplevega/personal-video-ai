@@ -19,6 +19,7 @@ select:focus { outline: 2px solid #a6a3ff; }
 .image-field input { width: 100%; color: #a9afbf; font: inherit; }
 .image-field input::file-selector-button { margin-right: 12px; padding: 9px 12px; border: 1px solid #394050; border-radius: 8px; color: #e8eaf0; background: #191e2b; cursor: pointer; }
 .clear-image { padding: 4px 0; background: transparent; color: #a6a3ff; font-size: 14px; }
+.format-warning { margin: 0; color: #ffd097; font-size: 14px; line-height: 1.5; }
 @media (max-width: 520px) { .settings-row { grid-template-columns: 1fr; } }
 button { justify-self: start; padding: 13px 23px; border: 0; border-radius: 10px; background: #a6a3ff; color: #10131c; font: inherit; font-weight: 700; cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
