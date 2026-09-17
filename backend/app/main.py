@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 from .comfyui import ConfigurationError, get_job, get_job_video, queue_generation
+from .store import list_jobs, record_job
 
 app = FastAPI(title="Personal Video AI", version="0.1.0")
 app.add_middleware(
@@ -32,11 +33,18 @@ def health() -> dict[str, str]:
 @app.post("/api/generate", status_code=202)
 async def generate(request: GenerateRequest) -> dict[str, str]:
     try:
-        return await queue_generation(request.prompt, request.seed)
+        result = await queue_generation(request.prompt, request.seed)
+        record_job(result["prompt_id"], request.prompt)
+        return result
     except ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"ComfyUI indisponible ou réponse invalide : {exc}") from exc
+
+
+@app.get("/api/jobs")
+def history() -> list[dict[str, str]]:
+    return list_jobs()
 
 
 @app.get("/api/jobs/{job_id}")
